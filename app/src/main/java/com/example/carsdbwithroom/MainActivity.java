@@ -16,6 +16,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.carsdbwithroom.Data.CarsDAO;
 import com.example.carsdbwithroom.Data.DatabaseHandler;
 import com.example.carsdbwithroom.Model.Car;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -28,7 +29,6 @@ public class MainActivity extends AppCompatActivity {
     private CarsAdapter carsAdapter;
     private ArrayList<Car> cars = new ArrayList<>();
     private RecyclerView recyclerView;
-    private DatabaseHandler dbHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,9 +36,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         recyclerView = findViewById(R.id.recyclerView);
-        dbHandler = new DatabaseHandler(this);
 
-        cars.addAll((Collection<? extends Car>) dbHandler.getAllCars());
+        cars.addAll((Collection<? extends Car>) CarsDAO.getAllCars());
 
         carsAdapter = new CarsAdapter(this, cars, MainActivity.this);
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
@@ -135,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
     private void deleteCar(Car car, int position) {
 
         cars.remove(position);
-        dbHandler.deleteCar(car);
+        CarsDAO.deleteCar(car);
         carsAdapter.notifyDataSetChanged();
     }
 
@@ -146,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
         car.setName(name);
         car.setPrice(price);
 
-        dbHandler.updateCar(car);
+        CarsDAO.updateCar(car);
 
         cars.set(position, car);
 
@@ -157,10 +156,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void createCar(String name, String price) {
 
-        long id = dbHandler.insertCar(name, price);
+        long id = CarsDAO.insertCar(name, price);
 
 
-        Car car = dbHandler.getCar(id);
+        Car car = CarsDAO.getCar(id);
 
         if (car != null) {
 
