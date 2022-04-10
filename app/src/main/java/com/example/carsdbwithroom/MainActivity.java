@@ -1,34 +1,32 @@
 package com.example.carsdbwithroom;
 
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.DefaultItemAnimator;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.carsdbwithroom.Data.CarsDAO;
-import com.example.carsdbwithroom.Data.DatabaseHandler;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.room.Room;
+
+import com.example.carsdbwithroom.Data.CarsAppDatabase;
 import com.example.carsdbwithroom.Model.Car;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
-import java.util.Collection;
 
 public class MainActivity extends AppCompatActivity {
 
     private CarsAdapter carsAdapter;
     private ArrayList<Car> cars = new ArrayList<>();
     private RecyclerView recyclerView;
+    private CarsAppDatabase carsAppDatabase;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,8 +34,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         recyclerView = findViewById(R.id.recyclerView);
+        carsAppDatabase = Room.databaseBuilder(getApplicationContext(),
+                CarsAppDatabase.class, "CarsDb")
+                .allowMainThreadQueries()
+                .build();
 
-        cars.addAll((Collection<? extends Car>) CarsDAO.getAllCars());
+        cars.addAll(carsAppDatabase.getCarDAO().getAllCars());
 
         carsAdapter = new CarsAdapter(this, cars, MainActivity.this);
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
@@ -48,14 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
         FloatingActionButton floatingActionButton =
                 (FloatingActionButton) findViewById(R.id.floatingActionButton);
-        floatingActionButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                addAndEditCars(false, null, -1);
-            }
-
-
-        });
+        floatingActionButton.setOnClickListener(view -> addAndEditCars(false, null, -1));
 
 
     }
@@ -80,53 +75,46 @@ public class MainActivity extends AppCompatActivity {
 
         alertDialogBuilderUserInput
                 .setCancelable(false)
-                .setPositiveButton(isUpdate ? "Update" : "Save", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialogBox, int id) {
+                .setPositiveButton(isUpdate ? "Update" : "Save", (dialogBox, id) -> {
 
-                    }
                 })
                 .setNegativeButton(isUpdate ? "Delete" : "Cancel",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialogBox, int id) {
+                        (dialogBox, id) -> {
 
-                                if (isUpdate) {
+                            if (isUpdate) {
 
-                                    deleteCar(car, position);
-                                } else {
+                                deleteCar(car, position);
+                            } else {
 
-                                    dialogBox.cancel();
-
-                                }
+                                dialogBox.cancel();
 
                             }
+
                         });
 
 
         final AlertDialog alertDialog = alertDialogBuilderUserInput.create();
         alertDialog.show();
 
-        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
 
-                if (TextUtils.isEmpty(nameEditText.getText().toString())) {
-                    Toast.makeText(MainActivity.this, "Enter car name!", Toast.LENGTH_SHORT).show();
-                    return;
-                } else if (TextUtils.isEmpty(priceEditText.getText().toString())) {
-                    Toast.makeText(MainActivity.this, "Enter car price!", Toast.LENGTH_SHORT).show();
-                    return;
-                } else {
-                    alertDialog.dismiss();
-                }
+            if (TextUtils.isEmpty(nameEditText.getText().toString())) {
+                Toast.makeText(MainActivity.this, "Enter car name!", Toast.LENGTH_SHORT).show();
+                return;
+            } else if (TextUtils.isEmpty(priceEditText.getText().toString())) {
+                Toast.makeText(MainActivity.this, "Enter car price!", Toast.LENGTH_SHORT).show();
+                return;
+            } else {
+                alertDialog.dismiss();
+            }
 
 
-                if (isUpdate && car != null) {
+            if (isUpdate && car != null) {
 
-                    updateCar(nameEditText.getText().toString(), priceEditText.getText().toString(), position);
-                } else {
+                updateCar(nameEditText.getText().toString(), priceEditText.getText().toString(), position);
+            } else {
 
-                    createCar(nameEditText.getText().toString(), priceEditText.getText().toString());
-                }
+                createCar(nameEditText.getText().toString(), priceEditText.getText().toString());
             }
         });
     }
@@ -134,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
     private void deleteCar(Car car, int position) {
 
         cars.remove(position);
-        CarsDAO.deleteCar(car);
+        carsAppDatabase.getCarDAO().deleteCar(car);
         carsAdapter.notifyDataSetChanged();
     }
 
@@ -145,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
         car.setName(name);
         car.setPrice(price);
 
-        CarsDAO.updateCar(car);
+        carsAppDatabase.getCarDAO().updateCar(car);
 
         cars.set(position, car);
 
@@ -156,10 +144,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void createCar(String name, String price) {
 
-        long id = CarsDAO.insertCar(name, price);
+        long id = carsAppDatabase.getCarDAO().addCar(new Car(0, name, price));
 
 
-        Car car = CarsDAO.getCar(id);
+        Car car = carsAppDatabase.getCarDAO().getCar(id);
 
         if (car != null) {
 
